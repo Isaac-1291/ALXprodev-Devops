@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Directory containing JSON files
+DATA_DIR="pokemon_data"
+REPORT_FILE="pokemon_report.csv"
+
+# Check if DATA_DIR exists
+if [ ! -d "$DATA_DIR" ]; then
+  echo "Data directory $DATA_DIR does not exist."
+  exit 1
+fi
+
+# CSV header
+echo "Name,Height (m),Weight (kg)" > "$REPORT_FILE"
+
+# Loop through JSON files and extract data
+for file in "$DATA_DIR"/*.json; do
+  # Extract name, height (dm), weight (hg)
+  name=$(jq -r '.name' "$file")
+  height_dm=$(jq -r '.height' "$file")
+  weight_hg=$(jq -r '.weight' "$file")
+
+  # Convert height to meters (1 dm = 0.1 m)
+  height_m=$(awk "BEGIN {printf \"%.1f\", $height_dm / 10}")
+
+  # Convert weight to kg (1 hg = 0.1 kg)
+  weight_kg=$(awk "BEGIN {printf \"%.1f\", $weight_hg / 10}")
+
+  # Append to CSV
+  echo "${name^},${height_m},${weight_kg}" >> "$REPORT_FILE"
+done
+
+# Calculate averages using awk (skip header line)
+avg=$(tail -n +2 "$REPORT_FILE" | awk -F, '
+  {height_sum += $2; weight_sum += $3; count++}
+  END {
+    printf "Average Height: %.2f m\nAverage Weight: %.2f kg\n", height_sum/count, weight_sum/count
+  }
+')
+
+echo "CSV Report generated at: $REPORT_FILE"
+echo
+echo "Name,Height (m),Weight (kg)"
+tail -n +2 "$REPORT_FILE"
+echo
+echo "$avg"
