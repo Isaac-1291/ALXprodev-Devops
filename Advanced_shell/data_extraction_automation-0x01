@@ -10,5 +10,8 @@ type=$(jq -r '.types[0].type.name' data.json)
 height_m=$(awk "BEGIN {printf \"%.1f\", $height / 10}")
 weight_kg=$(awk "BEGIN {printf \"%d\", $weight / 10}")
 
-# Format and print the output
-echo "${name^} is of type ${type^}, weighs ${weight_kg}kg, and is ${height_m}m tall."
+# Format output (all lowercase first)
+output="$name is of type $type, weighs ${weight_kg}kg, and is ${height_m}m tall."
+
+# Capitalize first letter of the whole string using sed
+echo "$output" | sed 's/./\u&/'
