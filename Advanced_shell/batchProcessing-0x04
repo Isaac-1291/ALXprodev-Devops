@@ -4,22 +4,31 @@ mkdir -p pokemon_data
 
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-for pokemon in "${pokemon_list[@]}"
-do
-  echo "Fetching data for $pokemon..."
+# Array to hold background PIDs
+pids=()
 
-  # Run curl in background, save output, and capture exit status in a subshell
-  (
-    curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "pokemon_data/${pokemon}.json"
-    if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
-      echo "Saved data to pokemon_data/${pokemon}.json ✅"
-    else
-      echo "Failed to fetch data for $pokemon"
-    fi
-  ) &
+for pokemon in "${pokemon_list[@]}"; do
+    echo "Fetching data for $pokemon..."
 
+    # Start curl in background
+    curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "pokemon_data/${pokemon}.json" &
+
+    # Store PID of last background command
+    pid=$!
+    pids+=($pid)
 done
 
-# Wait for all background jobs to finish before exiting
-wait
-echo "All fetches completed."
+# Timeout in seconds for each fetch (example: 10 seconds)
+timeout=10
+
+# Monitor all background jobs
+for pid in "${pids[@]}"; do
+    # Wait for process with timeout
+    ( sleep $timeout && kill -0 $pid 2>/dev/null && kill $pid 2>/dev/null ) & watchdog=$!
+
+    # Wait for curl process to finish
+    wait $pid 2>/dev/null
+    kill $watchdog 2>/dev/null
+done
+
+echo "All fetches complete."
