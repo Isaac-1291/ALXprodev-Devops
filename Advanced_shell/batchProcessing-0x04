@@ -1,33 +1,25 @@
 #!/bin/bash
 
-# Ensure output directory exists
 mkdir -p pokemon_data
 
-# List of Pokémon (lowercase)
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Function to fetch Pokémon data
-fetch_pokemon() {
-    local pokemon=$1
-    echo "Fetching data for $pokemon..."
+for pokemon in "${pokemon_list[@]}"
+do
+  echo "Fetching data for $pokemon..."
+
+  # Run curl in background, save output, and capture exit status in a subshell
+  (
     curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "pokemon_data/${pokemon}.json"
-
     if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
-        echo "Saved data to pokemon_data/${pokemon}.json ✅"
+      echo "Saved data to pokemon_data/${pokemon}.json ✅"
     else
-        echo "Failed to fetch data for $pokemon"
+      echo "Failed to fetch data for $pokemon"
     fi
-}
+  ) &
 
-# Export function so subshells can use it (if needed)
-export -f fetch_pokemon
-
-# Launch fetch jobs in background
-for p in "${pokemon_list[@]}"; do
-    fetch_pokemon "$p" &
 done
 
-# Wait for all background jobs to finish
+# Wait for all background jobs to finish before exiting
 wait
-
-echo "All Pokémon data fetched."
+echo "All fetches completed."
