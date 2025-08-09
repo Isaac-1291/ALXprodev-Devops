@@ -1,24 +1,36 @@
 #!/bin/bash
 
-# Ensure output directory exists
 mkdir -p pokemon_data
-
-# List of Pokémon (lowercase)
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+max_retries=3
+error_log="errors.txt"
+> "$error_log"  # Clear error log
 
 for pokemon in "${pokemon_list[@]}"
 do
     echo "Fetching data for $pokemon..."
-    # Fetch and save JSON response
-    curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "pokemon_data/${pokemon}.json"
+    attempt=1
+    success=0
 
-    # Check if curl succeeded and file is not empty
-    if [ $? -eq 0 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
-        echo "Saved data to pokemon_data/${pokemon}.json ✅"
-    else
-        echo "Failed to fetch data for $pokemon"
+    while [ $attempt -le $max_retries ]; do
+        curl -s -w "%{http_code}" -o "pokemon_data/${pokemon}.json" "https://pokeapi.co/api/v2/pokemon/$pokemon" > status.txt
+        http_code=$(cat status.txt)
+        rm status.txt
+
+        if [ "$http_code" -eq 200 ] && [ -s "pokemon_data/${pokemon}.json" ]; then
+            echo "Saved data to pokemon_data/${pokemon}.json ✅"
+            success=1
+            break
+        else
+            echo "Attempt $attempt for $pokemon failed with status $http_code."
+            attempt=$((attempt+1))
+            sleep 2
+        fi
+    done
+
+    if [ $success -eq 0 ]; then
+        echo "Failed to fetch data for $pokemon after $max_retries attempts." | tee -a "$error_log"
     fi
 
-    # Sleep 1 second between requests to avoid rate limiting
     sleep 1
 done
