@@ -6,6 +6,6 @@ response=$(curl -s -o data.json -w "%{http_code}" https://pokeapi.co/api/v2/poke
 if [ "$response" -eq 200 ]; then
     echo "Pikachu data successfully saved to data.json"
 else
-    echo "Failed to fetch data. HTTP status: $response"
+    echo "Failed to fetch data. HTTP status: $response" | tee errors.txt
     exit 1
 fi
